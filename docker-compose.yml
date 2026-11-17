@@ -1,0 +1,61 @@
+services:
+  mysql8019:
+    image: "mysql:8.0.19"
+    ports:
+      - "33061:3306"
+    command: "--default-authentication-plugin=mysql_native_password"
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: "bluebell"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./mysql/data:/var/lib/mysql
+  redis507:
+    image: "redis:5.0.7"
+    ports:
+      - "63791:6379"
+
+  bluebell_app:
+    build: .
+    volumes:
+      - ./conf/config.docker.yaml:/conf/config.docker.yaml:ro
+    command: >
+      sh -c "sh /wait-for.sh mysql8019:3306 redis507:6379 -- /bluebell_app /conf/config.docker.yaml"
+    depends_on:
+      - mysql8019
+      - redis507
+    ports:
+      - "8888:8080"
+#以前需要分别启动三个容器，现在只需要执行：
+#docker-compose up
+#Docker 就会按照配置帮你启动三个服务。
+
+#command: "--default-authentication-plugin=mysql_native_password --init-file=/data/application/init.sql"
+#--default-authentication-plugin=mysql_native_password 指定 MySQL 默认使用 mysql_native_password 身份验证插件。
+#--init-file=/data/application/init.sql 表示 MySQL 启动时，执行指定的 SQL 文件。
+
+#MYSQL_ROOT_PASSWORD：设置 root 用户的密码。
+#MYSQL_DATABASE：容器初始化时自动创建 bluebell 数据库。
+
+#volumes:
+#- ./init.sql:/data/application/init.sql
+#宿主机文件路径:容器内部文件路径，，这样 MySQL 容器就能读取宿主机项目目录中的 init.sql 文件。
+
+#build: .，构建镜像，会在当前目录寻找 Dockerfile，然后根据 Dockerfile 构建 Go 后端镜像。
+
+#command: >
+# sh -c "sh /wait-for.sh mysql8019:3306 redis507:6379 -- /bluebell_app /conf/config.docker.yaml"
+#第一部分：sh -c表示通过 Shell 执行后面的字符串命令。
+#第二部分：sh /wait-for.sh mysql8019:3306 redis507:6379 --
+#表示执行 /wait-for.sh 脚本。
+#- 检查 MySQL 的 3306 端口是否可以连接。
+#- 检查 Redis 的 6379 端口是否可以连接。
+#- 等待两个服务都准备好。
+
+#-- /bluebell_app /conf/config.docker.yaml
+#这里的 -- 表示前面的等待脚本参数结束，后面的内容是等待成功后需要执行的命令。
+
+#depends_on:
+# - mysql8019
+# - redis507
+#表示 bubble_app 依赖 MySQL 和 Redis。

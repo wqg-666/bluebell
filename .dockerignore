@@ -1,0 +1,17 @@
+.git
+.idea
+mysql
+bin
+tmp
+frontend
+node_modules
+**/node_modules
+*.log
+*.exe
+bluebell
+dot
+where
+conf/config.local.yaml
+conf/config.aliyun.yaml
+conf/config.docker.yaml
+static/js/*.map

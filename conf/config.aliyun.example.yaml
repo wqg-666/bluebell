@@ -1,0 +1,36 @@
+name: "bluebell"
+mode: "dev"
+port: 8080
+version: "v0.0.1"
+start_time: "2026-10-01"
+machine_id: 1
+auth:
+  password_salt: "REPLACE_WITH_PRIVATE_PASSWORD_SALT"
+  jwt_secret: "REPLACE_WITH_PRIVATE_SIGNING_KEY"
+  jwt_expire: 8760
+log:
+  level: "debug"
+  filename: "bluebell.log"
+  max_size: 200
+  max_age: 30
+  max_backups: 7
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: "bluebell"
+  password: "REPLACE_WITH_DATABASE_PASSWORD"
+  dbname: "bluebell"
+  max_open_conns: 200
+  max_idle_conns: 50
+
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 100
+post_list:
+  page: 1
+  size: 10
+  order: "time"

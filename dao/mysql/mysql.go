@@ -21,9 +21,10 @@ func Init(cfg *settings.MySQLConfig) (err error) {
 		return
 	}
 	db.SetMaxOpenConns(cfg.MaxOpenConn)
-	db.SetMaxIdleConns(cfg.MaxIdleConns)
+	db.SetMaxIdleConns(cfg.MaxIdleConn)
 	return
 }
+
 func Close() {
 	_ = db.Close()
 }

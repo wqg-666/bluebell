@@ -1,0 +1,43 @@
+# Air 默认读取的 TOML 格式配置文件
+#当你修改 Go 源代码时，Air 会自动检测文件变化，重新编译并运行程序，不需要你每次手动执行 go build 或重新启动程序。
+# 工作目录
+# 使用 . 或绝对路径，请注意 `tmp_dir` 目录必须在 `root` 目录下
+root = "."
+tmp_dir = "tmp"
+#tmp_dir 表示临时目录。Air 每次编译 Go 项目时，会将生成的可执行文件放到这个目录下。
+
+#[build] 表示下面的配置都属于编译相关配置。
+[build]
+#编译命令.-o指定生成的可执行文件名称和位置 ./tmp/main	将编译结果放到 tmp/main
+cmd = "go build -o ./tmp/main.exe ."
+# 编译完成后运行生成的程序，并把本地配置文件作为程序参数传入
+entrypoint = ["./tmp/main.exe", "conf/config.local.yaml"]
+# 监听以下文件扩展名的文件.
+include_ext = ["go", "tpl", "tmpl", "html", "yaml", "yml", "toml"]
+# 忽略这些文件扩展名或目录
+exclude_dir = ["assets", "tmp", "vendor", "frontend/node_modules"]
+# 监听以下指定目录的文件
+include_dir = []
+# 排除以下文件,表示指定不需要监听的文件
+exclude_file = []
+# 如果文件更改过于频繁，则没有必要在每次更改时都触发构建。可以设置触发构建的延迟时间
+delay = 1000 # ms
+# 发生构建错误时，停止运行旧的二进制文件。
+stop_on_error = true
+# air 的日志文件名，该日志文件放置在你的`tmp_dir`中
+log = "air_errors.log"
+
+[log]
+# 显示日志时间
+time = true
+
+[color]
+# 自定义每个部分显示的颜色。如果找不到颜色，使用原始的应用程序日志。
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+
+[misc]
+# 退出时删除tmp目录
+clean_on_exit = true

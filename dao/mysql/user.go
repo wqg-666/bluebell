@@ -1,11 +1,77 @@
 package mysql
 
+import (
+	"bluebell/models"
+	"crypto/md5"
+	"database/sql"
+	"encoding/hex"
+	"errors"
+
+	"github.com/spf13/viper"
+)
+
 // 把每一步数据库操作封装成函数
 // 待logic层根据业务需求调用
-func QueryUserByUsername() {
 
+// CheckUserExist 检查指定用户名的用户是否存在
+func CheckUserExist(username string) (err error) {
+	sqlStr := `select count(user_id) from user where username = ?`
+	var count int
+	if err := db.Get(&count, sqlStr, username); err != nil {
+		return err
+	}
+	if count > 0 {
+		return ErrorUserExist
+	}
+	return
 }
-func InsertUser() {
-	//执行SQL语句入库
 
+// InsertUser 向数据库中插入一条新的用户记录
+func InsertUser(user *models.User) (err error) {
+	if viper.GetString("auth.password_salt") == "" {
+		return errors.New("auth.password_salt or BLUEBELL_PASSWORD_SALT must be configured")
+	}
+	//对密码进行加密
+	user.Password = encryptPassword(user.Password)
+	//执行SQL语句入库
+	sqlStr := `insert into user (user_id,username,password) values(?,?,?)`
+	_, err = db.Exec(sqlStr, user.UserID, user.Username, user.Password)
+	return
+}
+
+func Login(user *models.User) (err error) {
+	if viper.GetString("auth.password_salt") == "" {
+		return errors.New("auth.password_salt or BLUEBELL_PASSWORD_SALT must be configured")
+	}
+	oPassword := user.Password //用户传入的登录密码
+	sqlStr := `select user_id,username,password from user where username=?`
+	err = db.Get(user, sqlStr, user.Username)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrorUserNotExist
+	}
+	if err != nil {
+		//查询数据库失败
+		return err
+	}
+	//判断密码是否正确
+	password := encryptPassword(oPassword)
+	if password != user.Password { //user.Password数据库里存的密码
+		return ErrorInvalidPassword
+	}
+	return
+}
+
+// encryptPassword 把密码转换成 MD5 十六进制字符串的函数
+func encryptPassword(opassword string) string {
+	h := md5.New()
+	_, _ = h.Write([]byte(opassword + viper.GetString("auth.password_salt")))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// GetUserById 根据id获取用户信息
+func GetUserById(uid int64) (user *models.User, err error) {
+	user = new(models.User)
+	sqlStr := `select user_id,username from user where user_id=?`
+	err = db.Get(user, sqlStr, uid)
+	return
 }
