@@ -3,11 +3,11 @@ package mysql
 import (
 	"bluebell/models"
 	"crypto/md5"
-	"database/sql"
 	"encoding/hex"
 	"errors"
 
 	"github.com/spf13/viper"
+	"gorm.io/gorm"
 )
 
 // 把每一步数据库操作封装成函数
@@ -15,9 +15,8 @@ import (
 
 // CheckUserExist 检查指定用户名的用户是否存在
 func CheckUserExist(username string) (err error) {
-	sqlStr := `select count(user_id) from user where username = ?`
-	var count int
-	if err := db.Get(&count, sqlStr, username); err != nil {
+	var count int64
+	if err := db.Model(&models.User{}).Where("username=?", username).Count(&count).Error; err != nil {
 		return err
 	}
 	if count > 0 {
@@ -33,32 +32,34 @@ func InsertUser(user *models.User) (err error) {
 	}
 	//对密码进行加密
 	user.Password = encryptPassword(user.Password)
-	//执行SQL语句入库
-	sqlStr := `insert into user (user_id,username,password) values(?,?,?)`
-	_, err = db.Exec(sqlStr, user.UserID, user.Username, user.Password)
+	err = db.Create(&user).Error
 	return
 }
 
+// Login 用户登录
 func Login(user *models.User) (err error) {
 	if viper.GetString("auth.password_salt") == "" {
 		return errors.New("auth.password_salt or BLUEBELL_PASSWORD_SALT must be configured")
 	}
-	oPassword := user.Password //用户传入的登录密码
-	sqlStr := `select user_id,username,password from user where username=?`
-	err = db.Get(user, sqlStr, user.Username)
-	if errors.Is(err, sql.ErrNoRows) {
+	oPassword := user.Password // 用户传入的登录密码
+
+	// 根据用户名查询用户
+	err = db.Select("user_id", "username", "password").
+		Where("username = ?", user.Username).
+		First(user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return ErrorUserNotExist
 	}
 	if err != nil {
-		//查询数据库失败
 		return err
 	}
-	//判断密码是否正确
+	// 判断密码是否正确
 	password := encryptPassword(oPassword)
-	if password != user.Password { //user.Password数据库里存的密码
+	if password != user.Password {
 		return ErrorInvalidPassword
 	}
-	return
+
+	return nil
 }
 
 // encryptPassword 把密码转换成 MD5 十六进制字符串的函数
@@ -71,7 +72,8 @@ func encryptPassword(opassword string) string {
 // GetUserById 根据id获取用户信息
 func GetUserById(uid int64) (user *models.User, err error) {
 	user = new(models.User)
-	sqlStr := `select user_id,username from user where user_id=?`
-	err = db.Get(user, sqlStr, uid)
+
+	err = db.Select("user_id", "username").Where("user_id=", uid).First(&user).Error
+
 	return
 }
